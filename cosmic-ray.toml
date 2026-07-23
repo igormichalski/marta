@@ -1,0 +1,23 @@
+# Configuração do framework multiagente de fortalecimento de testes.
+# A seção [cosmic-ray] é a configuração padrão do Cosmic Ray.
+# A seção [framework] reúne os parâmetros do nosso framework.
+#
+# Observação: o framework regenera internamente o test-command para usar o
+# mesmo interpretador Python deste ambiente (que possui o pytest) e protegê-lo
+# contra espaços no caminho. O valor abaixo é apenas ilustrativo.
+
+[cosmic-ray]
+module-path = "validador.py"
+timeout = 10.0
+test-command = "python -m pytest test_validador.py"
+
+[cosmic-ray.distributor]
+name = "local"
+
+[framework]
+test-file = "test_validador.py"      # arquivo onde os testes serão injetados
+provider = "groq"                    # provedor do LLM (atualmente: groq)
+model = "llama-3.3-70b-versatile"    # modelo usado como agente gerador
+temperature = 0.1
+max-attempts = 2                     # tentativas consecutivas sem progresso antes de parar
+api-key-env = "GROQ_API_KEY"         # nome da variável de ambiente com a chave de API

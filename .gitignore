@@ -1,0 +1,36 @@
+# Segredos e ambiente (NUNCA versionar)
+.env
+.env.*
+*.key
+
+# Ambiente virtual
+venv/
+.venv/
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Artefatos de execução do framework / Cosmic Ray
+*.sqlite
+.framework_cosmic.toml
+.coverage
+.pytest_cache/
+.chroma/
+**/.chroma/
+**/.framework_cosmic.toml
+
+# Logs e saídas transitórias de execuções
+*.log
+run_demo_rag.log
+resultados_demo_rag.csv
+mutants_report.txt
+**/mutants_report.txt
+rag_trace.txt
+**/rag_trace.txt
+
+# Sistema
+.DS_Store

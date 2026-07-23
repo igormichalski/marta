@@ -1,0 +1,17 @@
+[cosmic-ray]
+module-path = "truncar.py"
+timeout = 10.0
+test-command = "python -m pytest test_truncar.py"
+
+[cosmic-ray.distributor]
+name = "local"
+
+[framework]
+test-file = "test_truncar.py"
+provider = "groq"
+model = "llama-3.3-70b-versatile"
+temperature = 0.1
+max-attempts = 5
+api-key-env = "GROQ_API_KEY"
+rag = true
+rag-k = 3

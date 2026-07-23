@@ -1,0 +1,17 @@
+[cosmic-ray]
+module-path = "depreciacao.py"
+timeout = 10.0
+test-command = "python -m pytest test_depreciacao.py"
+
+[cosmic-ray.distributor]
+name = "local"
+
+[framework]
+test-file = "test_depreciacao.py"
+provider = "groq"
+model = "llama-3.3-70b-versatile"
+temperature = 0.1
+max-attempts = 5
+api-key-env = "GROQ_API_KEY"
+rag = true
+rag-k = 3
