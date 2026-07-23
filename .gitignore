@@ -51,3 +51,7 @@ resultados/
 
 # Saídas de demonstração
 resultados_demo_rag.csv
+
+# Saídas do Pynguin (geração dos baselines)
+pynguin-report/
+**/pynguin-report/
