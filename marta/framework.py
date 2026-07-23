@@ -145,21 +145,40 @@ def executar_pytest(test_file):
     return r.returncode == 0, r.stdout
 
 
+def _carregar_chaves(cfg):
+    """Carrega as chaves de API. GROQ_API_KEYS (lista separada por vírgula) tem
+    prioridade sobre a chave única, permitindo rotação entre contas."""
+    multiplas = os.environ.get("GROQ_API_KEYS", "").strip()
+    if multiplas:
+        chaves = [k.strip() for k in multiplas.split(",") if k.strip()]
+    else:
+        unica = os.environ.get(cfg["api_key_env"])
+        chaves = [unica] if unica else []
+    if not chaves:
+        sys.exit(f"Defina {cfg['api_key_env']} (ou GROQ_API_KEYS) com sua chave de API.")
+    return chaves
+
+
 def criar_cliente(cfg):
-    chave = os.environ.get(cfg["api_key_env"])
-    if not chave:
-        sys.exit(f"Set the environment variable {cfg['api_key_env']} with your API key.")
     if cfg["provider"] != "groq":
         sys.exit(f"Unsupported provider: {cfg['provider']}.")
     from groq import Groq
-    return Groq(api_key=chave)
+    chaves = _carregar_chaves(cfg)
+    return {"clientes": [Groq(api_key=k) for k in chaves], "idx": 0}
+
+
+def _e_limite(msg):
+    return any(t in msg for t in ("rate", "429", "per day", "tpd", "tpm", "too large", "timeout", "503"))
 
 
 def agente_gerador(cliente, cfg, prompt):
+    clientes = cliente["clientes"]
+    n = len(clientes)
     espera = 20
-    for i in range(4):
+    voltas = 0
+    for _ in range(3 * n + 2):
         try:
-            resposta = cliente.chat.completions.create(
+            resposta = clientes[cliente["idx"]].chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model=cfg["model"],
                 temperature=cfg["temperature"],
@@ -167,15 +186,23 @@ def agente_gerador(cliente, cfg, prompt):
             codigo = resposta.choices[0].message.content
             return codigo.replace("```python", "").replace("```", "").strip()
         except Exception as e:
-            msg = str(e).lower()
-            transitorio = any(t in msg for t in ("rate", "429", "too large", "timeout", "503"))
-            if i < 3 and transitorio:
+            if not _e_limite(str(e).lower()):
+                raise
+            if n > 1:
+                cliente["idx"] = (cliente["idx"] + 1) % n
+                voltas += 1
+                if voltas % n == 0:  # deu a volta em todas as chaves
+                    print(f"  {amarelo('⚠')} todas as chaves no limite; aguardando {espera}s...")
+                    time.sleep(espera)
+                    espera = min(espera * 2, 60)
+                else:
+                    proxima = cliente["idx"] + 1
+                    print(f"  {cinza(f'rotacionando para a chave {proxima}/{n}...')}")
+            else:
                 print(f"  {amarelo('⚠')} limite da API; aguardando {espera}s...")
                 time.sleep(espera)
                 espera = min(espera * 2, 60)
-                continue
-            raise
-    return ""
+    raise RuntimeError("Todas as chaves de API atingiram o rate limit.")
 
 
 def _relatorio_prompt(relatorio, k):
@@ -317,12 +344,14 @@ def comando_run(cfg, log_path=None):
 
 
 def _metricas(cfg, total, mortos, restantes, tentativas, inicio):
+    sobreviventes_iniciais = mortos + restantes
     return {
         "modulo": cfg["module_path"],
         "rag": cfg["rag"],
         "total": total,
         "mortos": mortos,
         "sobreviventes": restantes,
+        "score_inicial": (total - sobreviventes_iniciais) / total * 100 if total else 100.0,
         "score": (total - restantes) / total * 100 if total else 100.0,
         "tentativas": tentativas,
         "tempo_s": round(time.time() - inicio, 1),

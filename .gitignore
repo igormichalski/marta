@@ -1,6 +1,7 @@
 # Segredos e ambiente (NUNCA versionar)
 .env
 .env.*
+!.env.example
 *.key
 
 # Ambiente virtual
@@ -23,10 +24,8 @@ dist/
 **/.chroma/
 **/.framework_cosmic.toml
 
-# Logs e saídas transitórias de execuções
+# Logs e saídas transitórias de execução
 *.log
-run_demo_rag.log
-resultados_demo_rag.csv
 mutants_report.txt
 **/mutants_report.txt
 rag_trace.txt
@@ -34,3 +33,21 @@ rag_trace.txt
 
 # Sistema
 .DS_Store
+
+# Atalhos de raiz (o produto é o pacote marta + comando de console)
+/framework.py
+/rag.py
+
+# Maquinaria de experimento (documentada no TCC, fora do produto)
+experimentos.py
+agregar.py
+experimento_tentativas.py
+FONTES_RAG.md
+mvp_agent.py
+test_validador_base.py
+fluxograma_mvp_agent.png
+alvos/
+resultados/
+
+# Saídas de demonstração
+resultados_demo_rag.csv
