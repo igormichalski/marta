@@ -1,11 +1,3 @@
-"""MARTA: Multi-Agent Retrieval-augmented Test Augmentation.
-
-Framework multiagente de fortalecimento de testes guiado por mutação.
-
-    marta report [config]   # lista os mutantes sobreviventes
-    marta run    [config]   # gera testes para matar os mutantes
-"""
-
 import argparse
 import os
 import re
@@ -21,7 +13,7 @@ from . import rag
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()  # carrega GROQ_API_KEY de um arquivo .env local, se existir
+    load_dotenv()
 except ImportError:
     pass
 
@@ -29,7 +21,7 @@ CONFIG_PADRAO = "cosmic-ray.toml"
 SESSION = "session.sqlite"
 SESSION_CONFIG = ".framework_cosmic.toml"
 RELATORIO_TXT = "mutants_report.txt"
-FRAMEWORK_NAME = "MARTA"  # Multi-Agent Retrieval-augmented Test Augmentation
+FRAMEWORK_NAME = "MARTA"
 
 _COR = sys.stdout.isatty() and os.environ.get("NO_COLOR") is None
 
@@ -46,7 +38,6 @@ def negrito(t): return _c(t, "1")
 def badge(t, cor): return _c(f" {t} ", cor)
 
 
-# Configuração
 def carregar_config(caminho):
     if not os.path.exists(caminho):
         sys.exit(f"Configuration file not found: {caminho}")
@@ -86,7 +77,6 @@ def gerar_config_cosmic(cfg):
     return SESSION_CONFIG
 
 
-# Cosmic Ray
 def _bin(nome):
     caminho = os.path.join(os.path.dirname(sys.executable), nome)
     return caminho if os.path.exists(caminho) else nome
@@ -138,7 +128,6 @@ def salvar_relatorio_txt(texto, qtd, equivalentes=False):
         f.write(texto)
 
 
-# Pytest e LLM
 def executar_pytest(test_file):
     r = subprocess.run([sys.executable, "-m", "pytest", test_file],
                        capture_output=True, text=True)
@@ -146,8 +135,6 @@ def executar_pytest(test_file):
 
 
 def _carregar_chaves(cfg):
-    """Carrega as chaves de API. GROQ_API_KEYS (lista separada por vírgula) tem
-    prioridade sobre a chave única, permitindo rotação entre contas."""
     multiplas = os.environ.get("GROQ_API_KEYS", "").strip()
     if multiplas:
         chaves = [k.strip() for k in multiplas.split(",") if k.strip()]
@@ -191,7 +178,7 @@ def agente_gerador(cliente, cfg, prompt):
             if n > 1:
                 cliente["idx"] = (cliente["idx"] + 1) % n
                 voltas += 1
-                if voltas % n == 0:  # deu a volta em todas as chaves
+                if voltas % n == 0:
                     print(f"  {amarelo('⚠')} todas as chaves no limite; aguardando {espera}s...")
                     time.sleep(espera)
                     espera = min(espera * 2, 60)
@@ -206,7 +193,6 @@ def agente_gerador(cliente, cfg, prompt):
 
 
 def _relatorio_prompt(relatorio, k):
-    """Limita o relatório de mutantes inserido no prompt aos k primeiros."""
     partes = relatorio.split("[job-id]")
     if len(partes) <= k + 1:
         return relatorio
@@ -238,7 +224,6 @@ REGRAS:
     return prompt
 
 
-# Comandos
 def comando_report(cfg):
     inicio = time.time()
     print(negrito(f"\n  {FRAMEWORK_NAME} — mutation report\n"))

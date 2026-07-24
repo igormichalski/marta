@@ -1,18 +1,3 @@
-"""Recuperação de contexto (RAG) para o agente gerador.
-
-Em vez de despejar arquivos inteiros no prompt, indexamos o projeto-alvo em
-unidades semânticas (funções, classes e funções de teste, extraídas via AST) e,
-para cada mutante sobrevivente, recuperamos os trechos mais relevantes por
-similaridade de embeddings. Isso segue a recuperação em nível de repositório de
-RepoCoder (Zhang et al., 2023) e a representação por embeddings densos do
-Sentence-BERT (Reimers e Gurevych, 2019). A motivação empírica para RAG na
-geração de testes está em Shin et al. (2024).
-
-Embeddings: sentence-transformers (modelo local, sem chamadas externas).
-Índice: Chroma persistente, reconstruído a cada execução para evitar dados
-obsoletos.
-"""
-
 import ast
 import glob
 import os
@@ -22,7 +7,6 @@ MODELO_EMBED = "all-MiniLM-L6-v2"
 CHROMA_DIR = ".chroma"
 COLECAO = "alvo"
 
-# Arquivos do próprio framework: nunca entram no corpus do projeto-alvo.
 ARQUIVOS_FRAMEWORK = ("framework.py", "rag.py", "experimento_tentativas.py", "agregar.py")
 
 
@@ -33,7 +17,6 @@ def _modelo():
 
 
 def _chunks_arquivo(caminho):
-    """Divide um arquivo Python em unidades (def/class de nível superior)."""
     try:
         with open(caminho, encoding="utf-8") as f:
             fonte = f.read()
@@ -54,7 +37,6 @@ def _chunks_arquivo(caminho):
 
 
 def coletar_corpus(diretorio, ignorar=()):
-    """Coleta as unidades de todos os .py do diretório do projeto-alvo."""
     corpus = []
     for caminho in sorted(glob.glob(os.path.join(diretorio, "*.py"))):
         if os.path.basename(caminho) in ignorar:
@@ -64,11 +46,6 @@ def coletar_corpus(diretorio, ignorar=()):
 
 
 def construir_indice(diretorio, ignorar=ARQUIVOS_FRAMEWORK):
-    """Constrói (do zero) o índice vetorial do projeto-alvo.
-
-    Retorna a coleção Chroma e o corpus indexado, ou (None, []) se não houver
-    nada para indexar.
-    """
     import chromadb
 
     corpus = coletar_corpus(diretorio, ignorar)
@@ -94,7 +71,6 @@ def construir_indice(diretorio, ignorar=ARQUIVOS_FRAMEWORK):
 
 
 def recuperar(colecao, consulta, k=3):
-    """Recupera os k trechos mais relevantes para a consulta."""
     if colecao is None:
         return []
     total = colecao.count()
@@ -114,11 +90,6 @@ def recuperar(colecao, consulta, k=3):
 
 
 def consulta_de_mutantes(mutantes):
-    """Monta a consulta de recuperação a partir dos mutantes sobreviventes.
-
-    `mutantes` é a lista de tuplas (operador, linha_original, linha_mutada)
-    produzida por framework.listar_mutantes.
-    """
     partes = []
     for op, orig, mut in mutantes:
         partes.append(op)
@@ -130,7 +101,6 @@ def consulta_de_mutantes(mutantes):
 
 
 def formatar_contexto(itens):
-    """Formata os trechos recuperados para inserção no prompt."""
     if not itens:
         return ""
     blocos = []
@@ -140,7 +110,6 @@ def formatar_contexto(itens):
 
 
 def formatar_trace(itens):
-    """Resumo legível de quais trechos foram recuperados (para comprovação)."""
     if not itens:
         return "(RAG: nenhum trecho recuperado)"
     return "  ".join(f"{it['arquivo']}::{it['nome']}({it['distancia']:.3f})" for it in itens)
